@@ -154,10 +154,10 @@ const StoryMap: React.FC<StoryMapProps> = ({
         <MiniMap
           zoomable
           pannable
-          nodeColor={(_node) => {
-            return _node.type === "expressNode" ? "#000" : "#fff"
+          nodeColor={(node) => {
+            return node.type === "expressNode" ? "#000" : "#fff"
           }}
-          nodeStrokeColor={(_node) => {
+          nodeStrokeColor={() => {
             return "#000"
           }}
         />
