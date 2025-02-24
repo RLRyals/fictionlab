@@ -187,7 +187,6 @@ export default function Home() {
                   structure={selectedStructure}
                   totalScenes={scenes.length}
                   scenes={scenes}
-                  plotThreads={plotThreads}
                   onSuggestScene={handleSuggestScene}
                 />
               )}

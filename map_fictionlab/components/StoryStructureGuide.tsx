@@ -4,11 +4,17 @@ import { Button } from "@/components/ui/button"
 
 interface StoryStructureGuideProps {
   structure: StoryStructure
+  totalScenes: number
   scenes: Scene[]
   onSuggestScene: (beat: StoryBeat) => void
 }
 
-const StoryStructureGuide: React.FC<StoryStructureGuideProps> = ({ structure, scenes, onSuggestScene }) => {
+const StoryStructureGuide: React.FC<StoryStructureGuideProps> = ({
+  structure,
+  totalScenes,
+  scenes,
+  onSuggestScene,
+}) => {
   const missingBeats = structure.beats.filter((beat) => {
     const sceneWithBeat = scenes.find((scene) => scene.selectedBeat === beat.id)
     return !sceneWithBeat
