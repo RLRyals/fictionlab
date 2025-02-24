@@ -5,14 +5,23 @@ import StoryMap from "@/components/StoryMap"
 import Sidebar from "@/components/Sidebar"
 import PlotThreadManager from "@/components/PlotThreadManager"
 import SceneDetails from "@/components/SceneDetails"
-import { SceneManager } from "@/components/SceneManager"
-import type { PlotThread, Scene } from "@/types"
+import { FileManager } from "@/components/FileManager"
+import { SceneEditor } from "@/components/SceneEditor"
+import { StoryStructureManager } from "@/components/StoryStructureManager"
+import StoryStructureGuide from "@/components/StoryStructureGuide"
+import type { PlotThread, Scene, StoryStructure, StoryBeat } from "@/types"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { storyStructures } from "@/storyStructures"
+
+const HORIZONTAL_SPACING = 250
+const VERTICAL_SPACING = 100
 
 export default function Home() {
   const [plotThreads, setPlotThreads] = useState<PlotThread[]>([])
   const [scenes, setScenes] = useState<Scene[]>([])
   const [selectedScene, setSelectedScene] = useState<Scene | null>(null)
+  const [selectedStructure, setSelectedStructure] = useState<StoryStructure | null>(null)
+  const [activeTab, setActiveTab] = useState("scene-editor")
 
   const addPlotThread = useCallback((thread: PlotThread) => {
     setPlotThreads((prev) => {
@@ -55,19 +64,62 @@ export default function Home() {
         scene.id === updatedScene.id
           ? {
               ...updatedScene,
-              position: updatedScene.position || scene.position, // Ensure position is always defined
+              position: updatedScene.position || scene.position,
             }
           : scene,
       ),
     )
   }, [])
 
-  const updateScenes = useCallback((newScenes: Scene[]) => {
-    setScenes(newScenes)
+  const deleteScene = useCallback(
+    (sceneId: string) => {
+      setScenes((prev) => prev.filter((scene) => scene.id !== sceneId))
+      if (selectedScene && selectedScene.id === sceneId) {
+        setSelectedScene(null)
+      }
+    },
+    [selectedScene],
+  )
+
+  const handleDataImport = useCallback((importedScenes: Scene[], importedPlotThreads: PlotThread[]) => {
+    setScenes(importedScenes)
+    setPlotThreads(importedPlotThreads)
   }, [])
 
-  const updatePlotThreads = useCallback((newPlotThreads: PlotThread[]) => {
-    setPlotThreads(newPlotThreads)
+  const updateScenes = useCallback((updatedScenes: Scene[]) => {
+    setScenes(updatedScenes)
+  }, [])
+
+  const handleSuggestScene = useCallback(
+    (beat: StoryBeat) => {
+      const nextOrder = Math.max(...scenes.map((s) => s.order), 0) + 1
+      const lastScene =
+        scenes.length > 0 ? scenes.reduce((prev, current) => (prev.order > current.order ? prev : current)) : null
+
+      const newPosition = lastScene
+        ? { x: lastScene.position.x + HORIZONTAL_SPACING, y: lastScene.position.y }
+        : { x: HORIZONTAL_SPACING, y: VERTICAL_SPACING }
+
+      const newScene: Scene = {
+        id: `scene-${Date.now()}`,
+        order: nextOrder,
+        title: beat.name,
+        description: beat.description,
+        plotThreads: beat.requiredThreads,
+        position: newPosition,
+        type: beat.requiredThreads.length > 1 ? "express" : "local",
+        selectedBeat: beat.id,
+      }
+      addScene(newScene)
+      setSelectedScene(newScene)
+      setActiveTab("scene-details")
+    },
+    [scenes, addScene],
+  )
+
+  const handleSceneSelect = useCallback((scene: Scene) => {
+    setSelectedScene(scene)
+    setActiveTab("scene-details")
   }, [])
 
   return (
@@ -76,22 +128,72 @@ export default function Home() {
         <StoryMap
           plotThreads={plotThreads}
           scenes={scenes}
-          onSceneSelect={setSelectedScene}
+          onSceneSelect={handleSceneSelect}
           onSceneUpdate={updateScene}
           onSceneAdd={addScene}
+          onSceneDelete={deleteScene}
+          onScenesUpdate={updateScenes}
+          selectedStructure={selectedStructure}
         />
       </div>
       <Sidebar>
-        <Tabs defaultValue="threads">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full">
-            <TabsTrigger value="threads" className="flex-1">
+            <TabsTrigger value="scene-details" className="flex-1">
+              Scene Details
+            </TabsTrigger>
+            <TabsTrigger value="scene-editor" className="flex-1">
+              Scene Editor
+            </TabsTrigger>
+            <TabsTrigger value="story-structure" className="flex-1">
+              Story Structure
+            </TabsTrigger>
+            <TabsTrigger value="plot-threads" className="flex-1">
               Plot Threads
             </TabsTrigger>
-            <TabsTrigger value="scenes" className="flex-1">
-              Scenes
+            <TabsTrigger value="file" className="flex-1">
+              Files
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="threads">
+          <TabsContent value="scene-details">
+            {selectedScene && (
+              <SceneDetails
+                scene={selectedScene}
+                plotThreads={plotThreads}
+                onUpdate={updateScene}
+                selectedStructure={selectedStructure}
+              />
+            )}
+          </TabsContent>
+          <TabsContent value="scene-editor">
+            <SceneEditor
+              scenes={scenes}
+              plotThreads={plotThreads}
+              selectedStructure={selectedStructure}
+              onSceneUpdate={updateScene}
+              onScenesUpdate={updateScenes}
+              onSceneDelete={deleteScene}
+            />
+          </TabsContent>
+          <TabsContent value="story-structure">
+            <div className="space-y-4">
+              <StoryStructureManager
+                structures={storyStructures}
+                selectedStructure={selectedStructure}
+                onSelectStructure={setSelectedStructure}
+              />
+              {selectedStructure && (
+                <StoryStructureGuide
+                  structure={selectedStructure}
+                  totalScenes={scenes.length}
+                  scenes={scenes}
+                  plotThreads={plotThreads}
+                  onSuggestScene={handleSuggestScene}
+                />
+              )}
+            </div>
+          </TabsContent>
+          <TabsContent value="plot-threads">
             <PlotThreadManager
               plotThreads={plotThreads}
               onAddPlotThread={addPlotThread}
@@ -99,17 +201,10 @@ export default function Home() {
               onDeletePlotThread={deletePlotThread}
             />
           </TabsContent>
-          <TabsContent value="scenes">
-            <SceneManager
-              scenes={scenes}
-              plotThreads={plotThreads}
-              onScenesUpdate={updateScenes}
-              onSceneAdd={addScene}
-              onPlotThreadsUpdate={updatePlotThreads}
-            />
+          <TabsContent value="file">
+            <FileManager scenes={scenes} plotThreads={plotThreads} onDataImport={handleDataImport} />
           </TabsContent>
         </Tabs>
-        {selectedScene && <SceneDetails scene={selectedScene} plotThreads={plotThreads} onUpdate={updateScene} />}
       </Sidebar>
     </main>
   )

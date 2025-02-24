@@ -13,9 +13,11 @@ import ReactFlow, {
   addEdge,
   type Connection,
   MarkerType,
+  MiniMap,
+  Panel,
 } from "reactflow"
 import "reactflow/dist/style.css"
-import type { PlotThread, Scene } from "@/types"
+import type { PlotThread, Scene, StoryStructure } from "@/types"
 import { LocalNode, ExpressNode } from "./CustomNodes"
 
 interface StoryMapProps {
@@ -24,6 +26,9 @@ interface StoryMapProps {
   onSceneSelect: (scene: Scene) => void
   onSceneUpdate: (scene: Scene) => void
   onSceneAdd: (scene: Scene) => void
+  onSceneDelete: (sceneId: string) => void
+  onScenesUpdate?: (scenes: Scene[]) => void
+  selectedStructure?: StoryStructure | null
 }
 
 const nodeTypes = {
@@ -31,54 +36,67 @@ const nodeTypes = {
   expressNode: ExpressNode,
 }
 
-const VERTICAL_SPACING = 150
-const HORIZONTAL_SPACING = 250
-const MAIN_THREAD_Y = 300
-
-const StoryMap: React.FC<StoryMapProps> = ({ plotThreads, scenes, onSceneSelect, onSceneUpdate, onSceneAdd }) => {
+const StoryMap: React.FC<StoryMapProps> = ({
+  plotThreads,
+  scenes,
+  onSceneSelect,
+  onSceneUpdate,
+  onSceneAdd,
+  onSceneDelete,
+}) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  useEffect(() => {
-    const sortedScenes = [...scenes].sort((a, b) => a.order - b.order)
-
-    const newNodes: Node[] = sortedScenes.map((scene) => ({
+  const createNodesAndEdges = useCallback(() => {
+    const newNodes: Node[] = scenes.map((scene) => ({
       id: scene.id,
       type: scene.plotThreads.length > 1 ? "expressNode" : "localNode",
       data: {
         label: `${scene.order}. ${scene.title}`,
         scene,
+        threads: plotThreads.filter((thread) => scene.plotThreads.includes(thread.id)),
+        onDelete: () => onSceneDelete(scene.id),
       },
       position: scene.position,
       draggable: true,
     }))
 
+    const newEdges: Edge[] = []
+    plotThreads.forEach((thread) => {
+      const threadScenes = scenes.filter((scene) => scene.plotThreads.includes(thread.id))
+      threadScenes.sort((a, b) => a.order - b.order)
+
+      for (let i = 0; i < threadScenes.length - 1; i++) {
+        const sourceScene = threadScenes[i]
+        const targetScene = threadScenes[i + 1]
+
+        newEdges.push({
+          id: `edge-${thread.id}-${sourceScene.id}-${targetScene.id}`,
+          source: sourceScene.id,
+          target: targetScene.id,
+          sourceHandle: `Right-${thread.id}`,
+          targetHandle: `Left-${thread.id}`,
+          type: "smoothstep",
+          animated: true,
+          style: {
+            stroke: thread.color,
+            strokeWidth: thread.isMain ? 4 : 2,
+          },
+          markerEnd: {
+            type: MarkerType.Arrow,
+            color: thread.color,
+          },
+        })
+      }
+    })
+
     setNodes(newNodes)
-  }, [scenes, setNodes])
+    setEdges(newEdges)
+  }, [scenes, plotThreads, setNodes, setEdges, onSceneDelete])
 
   useEffect(() => {
-    const newEdges: Edge[] = plotThreads.flatMap((thread) => {
-      const threadScenes = scenes
-        .filter((scene) => scene.plotThreads.includes(thread.id))
-        .sort((a, b) => a.order - b.order)
-
-      return threadScenes.slice(1).map((scene, index) => ({
-        id: `${thread.id}-${threadScenes[index].id}-${scene.id}`,
-        source: threadScenes[index].id,
-        target: scene.id,
-        type: "smoothstep",
-        style: {
-          stroke: thread.color,
-          strokeWidth: thread.isMain ? 4 : 3,
-        },
-        markerEnd: {
-          type: MarkerType.Arrow,
-          color: thread.color,
-        },
-      }))
-    })
-    setEdges(newEdges)
-  }, [plotThreads, scenes, setEdges])
+    createNodesAndEdges()
+  }, [createNodesAndEdges])
 
   const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges])
 
@@ -94,17 +112,19 @@ const StoryMap: React.FC<StoryMapProps> = ({ plotThreads, scenes, onSceneSelect,
   )
 
   const handleAddScene = useCallback(() => {
-    const maxOrder = Math.max(...scenes.map((s) => s.order), 0)
+    const nextOrder = Math.max(...scenes.map((s) => s.order), 0) + 1
+    const lastScene =
+      scenes.length > 0 ? scenes.reduce((prev, current) => (prev.order > current.order ? prev : current)) : null
+
+    const newPosition = lastScene ? { x: lastScene.position.x + 250, y: lastScene.position.y } : { x: 250, y: 100 }
+
     const newScene: Scene = {
       id: `scene-${Date.now()}`,
-      order: maxOrder + 1,
+      order: nextOrder,
       title: "New Scene",
       description: "",
       plotThreads: [],
-      position: {
-        x: (maxOrder + 1) * HORIZONTAL_SPACING,
-        y: MAIN_THREAD_Y,
-      },
+      position: newPosition,
       type: "local",
     }
     onSceneAdd(newScene)
@@ -131,10 +151,20 @@ const StoryMap: React.FC<StoryMapProps> = ({ plotThreads, scenes, onSceneSelect,
       >
         <Controls />
         <Background color="#f0f0f0" gap={16} />
+        <MiniMap
+          zoomable
+          pannable
+          nodeColor={(_node) => {
+            return _node.type === "expressNode" ? "#000" : "#fff"
+          }}
+          nodeStrokeColor={(_node) => {
+            return "#000"
+          }}
+        />
+        <Panel position="top-left">
+          <Button onClick={handleAddScene}>Add Scene</Button>
+        </Panel>
       </ReactFlow>
-      <div className="absolute top-4 left-4 z-10 space-y-2">
-        <Button onClick={handleAddScene}>Add Scene</Button>
-      </div>
       <div className="absolute bottom-4 left-4 z-10 bg-white p-4 rounded-lg shadow-lg">
         <h3 className="font-bold mb-2">Legend</h3>
         <div className="space-y-2">

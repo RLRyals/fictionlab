@@ -24,6 +24,14 @@ const PlotThreadEditor: React.FC<PlotThreadEditorProps> = ({ thread, onUpdate, o
     onUpdate({ ...thread, isMain: checked })
   }
 
+  const handleMdqChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onUpdate({ ...thread, mdq: e.target.value })
+  }
+
+  const handleLdqChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onUpdate({ ...thread, ldq: e.target.value })
+  }
+
   return (
     <div className="space-y-4 p-4 border rounded-md">
       <div>
@@ -37,6 +45,14 @@ const PlotThreadEditor: React.FC<PlotThreadEditorProps> = ({ thread, onUpdate, o
       <div className="flex items-center space-x-2">
         <Switch id={`thread-main-${thread.id}`} checked={thread.isMain} onCheckedChange={handleMainToggle} />
         <Label htmlFor={`thread-main-${thread.id}`}>Main Thread</Label>
+      </div>
+      <div>
+        <Label htmlFor={`thread-mdq-${thread.id}`}>Main Dramatic Question</Label>
+        <Input id={`thread-mdq-${thread.id}`} value={thread.mdq || ""} onChange={handleMdqChange} />
+      </div>
+      <div>
+        <Label htmlFor={`thread-ldq-${thread.id}`}>Lesser Dramatic Question</Label>
+        <Input id={`thread-ldq-${thread.id}`} value={thread.ldq || ""} onChange={handleLdqChange} />
       </div>
       <Button variant="destructive" onClick={() => onDelete(thread.id)}>
         Delete Thread

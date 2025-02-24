@@ -24,6 +24,8 @@ const PlotThreadManager: React.FC<PlotThreadManagerProps> = ({
 }) => {
   const [name, setName] = useState("")
   const [color, setColor] = useState("#000000")
+  const [mdq, setMdq] = useState("")
+  const [ldq, setLdq] = useState("")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,9 +35,13 @@ const PlotThreadManager: React.FC<PlotThreadManagerProps> = ({
         name,
         color,
         isMain: plotThreads.length === 0, // First thread is main by default
+        mdq,
+        ldq,
       })
       setName("")
       setColor("#000000")
+      setMdq("")
+      setLdq("")
     }
   }
 
@@ -56,6 +62,29 @@ const PlotThreadManager: React.FC<PlotThreadManagerProps> = ({
         <div>
           <Label htmlFor="thread-color">Thread Color</Label>
           <Input id="thread-color" type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="thread-mdq">Main Dramatic Question</Label>
+        </div>
+        <div>
+          <Label htmlFor="thread-mdq">Main Dramatic Question</Label>
+          <Input
+            id="thread-mdq"
+            type="text"
+            value={mdq}
+            onChange={(e) => setMdq(e.target.value)}
+            placeholder="Enter main dramatic question"
+          />
+        </div>
+        <div>
+          <Label htmlFor="thread-ldq">Lesser Dramatic Question</Label>
+          <Input
+            id="thread-ldq"
+            type="text"
+            value={ldq}
+            onChange={(e) => setLdq(e.target.value)}
+            placeholder="Enter lesser dramatic question"
+          />
         </div>
         <Button type="submit" className="w-full">
           Add Plot Thread
