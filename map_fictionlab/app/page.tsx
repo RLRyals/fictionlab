@@ -185,7 +185,6 @@ export default function Home() {
               {selectedStructure && (
                 <StoryStructureGuide
                   structure={selectedStructure}
-                  totalScenes={scenes.length}
                   scenes={scenes}
                   onSuggestScene={handleSuggestScene}
                 />
