@@ -15,7 +15,7 @@ interface SceneManagerProps {
   plotThreads: PlotThread[]
   onScenesUpdate: (scenes: Scene[]) => void
   onSceneAdd: (scene: Scene) => void
-  onPlotThreadsUpdate: (plotThreads: PlotThread[]) => void
+  onPlotThreadsUpdate?: (plotThreads: PlotThread[]) => void
 }
 
 export function SceneManager({
@@ -23,9 +23,8 @@ export function SceneManager({
   plotThreads,
   onScenesUpdate,
   onSceneAdd,
-  onPlotThreadsUpdate,
+  onPlotThreadsUpdate = () => {},
 }: SceneManagerProps) {
-  const [csvContent, setCsvContent] = useState("")
   const [tempThreads, setTempThreads] = useState<string[]>([])
 
   useEffect(() => {
@@ -40,11 +39,9 @@ export function SceneManager({
       const reader = new FileReader()
       reader.onload = (event) => {
         const text = event.target?.result as string
-        setCsvContent(text)
 
         // Parse CSV and create scenes
         const lines = text.split("\n").filter((line) => line.trim())
-        const headers = lines[0].split(",")
         const newScenes: Scene[] = lines.slice(1).map((line, index) => {
           const values = line.split(",")
           const plotThreadIds = values[4] ? values[4].split(";") : []
@@ -76,7 +73,9 @@ export function SceneManager({
             }
           )
         })
-        onPlotThreadsUpdate(newPlotThreads)
+        if (onPlotThreadsUpdate) {
+          onPlotThreadsUpdate(newPlotThreads)
+        }
       }
       reader.readAsText(file)
     }
@@ -135,7 +134,9 @@ export function SceneManager({
 
   const handleThreadUpdate = (threadId: string, newName: string) => {
     const updatedThreads = plotThreads.map((thread) => (thread.id === threadId ? { ...thread, name: newName } : thread))
-    onPlotThreadsUpdate(updatedThreads)
+    if (onPlotThreadsUpdate) {
+      onPlotThreadsUpdate(updatedThreads)
+    }
   }
 
   return (
