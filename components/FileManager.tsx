@@ -4,7 +4,7 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { Scene, PlotThread } from "@/types"
-import saveAs from "file-saver"
+import { saveAs } from "file-saver"
 
 interface FileManagerProps {
   scenes: Scene[]
