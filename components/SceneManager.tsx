@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Scene, PlotThread } from "@/types"
-import saveAs from "file-saver"
+import { saveAs } from "file-saver"
 
 interface SceneManagerProps {
   scenes: Scene[]
